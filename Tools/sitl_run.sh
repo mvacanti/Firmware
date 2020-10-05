@@ -151,19 +151,25 @@ elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	"${build_path}/build_flightgear_bridge/flightgear_bridge" 0 `./get_FGbridge_params.py "models/"${model}".json"` &
 	FG_BRIDGE_PID=$!
 elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
-	source "$src_path/Tools/setup_jsbsim.bash" "${src_path}" "${build_path}" ${model}
+	cp "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" "${src_path}/Tools/jsbsim_bridge/models/${model}"
+	if [ -z "${SCENARIO}" ]; then
+	  export SCENARIO="none"
+  fi
+	python3 "${src_path}/Tools/jsbsim_bridge/build_jsbsim_scenario.py" "${src_path}" "$SCENARIO" "${model}" "${world}"
+
 	if [[ -n "$HEADLESS" ]]; then
 		echo "not running flightgear gui"
 	else
 		fgfs --fdm=null \
 			--native-fdm=socket,in,60,,5550,udp \
-			--aircraft=$JSBSIM_AIRCRAFT_MODEL \
+			--aircraft=${model} \
 			--airport=${world} \
 			--disable-hud \
 			--disable-ai-models &> /dev/null &
 		FGFS_PID=$!
 	fi
-	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" "models/${JSBSIM_AIRCRAFT_DIR}" $JSBSIM_AIRCRAFT_MODEL ${model} "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" $HEADLESS 2> /dev/null &
+	export SCENARIO_PATH="scenario/${model}.${SCENARIO}.${world}.xml"
+	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" "models/" ${model} $SCENARIO_PATH $HEADLESS 2> /dev/null &
 	JSBSIM_PID=$!
 fi
 
